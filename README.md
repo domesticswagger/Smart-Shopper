@@ -1,0 +1,2 @@
+# Smart-Shopper
+Shop smartly
