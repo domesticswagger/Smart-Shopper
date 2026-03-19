@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Shopper</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F3ED; --paper: #EFEBE3; --ink: #1C1A17; --ink-light: #5C574F; --ink-faint: #A8A198;
+    --sage: #7A9E7E; --sage-light: #B8D4BB; --sage-pale: #E8F0E9;
+    --gold: #C9973A; --gold-pale: #F5EDD8;
+    --due: #D94F3D; --due-pale: #FBEAE8;
+    --soon: #C9973A; --soon-pale: #FDF3E0;
+    --ok: #5A8A5E; --ok-pale: #E5F0E6;
+    --snooze: #7B6FA5; --snooze-pale: #EDEAF5;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--cream); color: var(--ink); font-family: 'DM Sans', sans-serif; min-height: 100vh;
+    background-image: radial-gradient(ellipse at 0% 0%, rgba(122,158,126,0.08) 0%, transparent 50%),
+                      radial-gradient(ellipse at 100% 100%, rgba(196,113,74,0.06) 0%, transparent 50%);
+  }
+  header { padding: 32px 40px 0; display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+  .brand { display:flex; flex-direction:column; gap:2px; }
+  .brand h1 { font-family:'Playfair Display',serif; font-size:2.6rem; font-weight:600; letter-spacing:-0.02em; line-height:1; }
+  .brand p { font-size:0.82rem; color:var(--ink-faint); font-weight:300; letter-spacing:0.06em; text-transform:uppercase; }
+  .header-actions { display:flex; gap:10px; align-items:center; }
+
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:500; cursor:pointer; border:none; transition:all 0.15s; letter-spacing:0.01em; }
+  .btn-primary { background:var(--ink); color:var(--cream); }
+  .btn-primary:hover { background:#333; transform:translateY(-1px); }
+  .btn-ghost { background:transparent; color:var(--ink-light); border:1.5px solid var(--paper); }
+  .btn-ghost:hover { border-color:var(--ink-light); color:var(--ink); }
+  .btn-sage { background:var(--sage); color:white; }
+  .btn-sage:hover { background:#6a8e6e; transform:translateY(-1px); }
+
+  .summary-bar { margin:28px 40px 0; display:flex; gap:12px; flex-wrap:wrap; }
+  .summary-chip { display:flex; align-items:center; gap:8px; padding:8px 16px; border-radius:100px; font-size:0.8rem; font-weight:500; cursor:pointer; transition:all 0.15s; border:1.5px solid transparent; }
+  .summary-chip:hover { transform:translateY(-1px); }
+  .summary-chip.active { border-color:currentColor; }
+  .chip-due { background:var(--due-pale); color:var(--due); }
+  .chip-soon { background:var(--soon-pale); color:var(--soon); }
+  .chip-ok { background:var(--ok-pale); color:var(--ok); }
+  .chip-snooze { background:var(--snooze-pale); color:var(--snooze); }
+  .chip-all { background:var(--paper); color:var(--ink-light); }
+  .chip-dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+  .controls { margin:24px 40px 0; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .left-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+  .tab-group { display:flex; gap:4px; background:var(--paper); padding:4px; border-radius:8px; }
+  .tab-btn { padding:6px 14px; border-radius:5px; font-size:0.78rem; font-weight:500; cursor:pointer; border:none; background:transparent; color:var(--ink-light); font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+  .tab-btn.active { background:white; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+
+  .view-toggle { display:flex; gap:4px; background:var(--paper); padding:4px; border-radius:8px; }
+  .view-btn { padding:6px 10px; border-radius:5px; font-size:0.78rem; font-weight:500; cursor:pointer; border:none; background:transparent; color:var(--ink-light); font-family:'DM Sans',sans-serif; transition:all 0.15s; display:flex; align-items:center; gap:5px; }
+  .view-btn.active { background:white; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+
+  .search-wrap { position:relative; flex:1; max-width:260px; }
+  .search-wrap svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--ink-faint); pointer-events:none; }
+  .search-wrap input { width:100%; padding:8px 12px 8px 32px; border:1.5px solid var(--paper); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.82rem; background:white; color:var(--ink); outline:none; transition:border-color 0.15s; }
+  .search-wrap input:focus { border-color:var(--sage); }
+  .search-wrap input::placeholder { color:var(--ink-faint); }
+
+  .order-panel { margin:16px 40px 0; background:var(--ink); border-radius:10px; padding:16px 20px; display:none; animation:slideDown 0.2s ease; }
+  .order-panel.visible { display:block; }
+  @keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .order-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .order-panel-title { font-family:'Playfair Display',serif; font-size:1rem; color:var(--cream); font-weight:400; }
+  .order-count-label { font-size:0.75rem; color:var(--sage-light); font-weight:500; }
+  .order-items { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .order-tag { display:flex; align-items:center; gap:6px; padding:5px 10px; background:rgba(255,255,255,0.1); border-radius:5px; font-size:0.78rem; color:white; }
+  .order-tag-store { font-size:0.65rem; padding:2px 5px; border-radius:3px; font-weight:600; letter-spacing:0.04em; }
+  .store-instacart { background:rgba(122,158,126,0.4); color:var(--sage-light); }
+  .store-erewhon { background:rgba(201,151,58,0.4); color:#f0c870; }
+  .order-tag-remove { cursor:pointer; opacity:0.5; font-size:0.9rem; line-height:1; background:none; border:none; color:white; }
+  .order-tag-remove:hover { opacity:1; }
+  .order-actions { display:flex; gap:8px; align-items:center; }
+  .order-note { font-size:0.75rem; color:rgba(255,255,255,0.4); flex:1; }
+
+  /* GRID */
+  .grid { margin:20px 40px 40px; display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; }
+
+  /* CATEGORY VIEW */
+  .category-view { margin:20px 40px 40px; display:flex; flex-direction:column; gap:28px; }
+  .cat-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .cat-name { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:600; color:var(--ink); }
+  .cat-count { font-size:0.72rem; font-weight:500; color:var(--ink-faint); letter-spacing:0.06em; text-transform:uppercase; }
+  .cat-line { flex:1; height:1px; background:var(--paper); }
+  .cat-due-dot { width:8px; height:8px; border-radius:50%; background:var(--due); flex-shrink:0; }
+  .cat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; }
+
+  /* ITEM CARD */
+  .item-card { background:white; border-radius:10px; padding:16px 18px; display:flex; flex-direction:column; gap:10px; border:1.5px solid transparent; transition:all 0.15s; cursor:pointer; position:relative; overflow:visible; animation:fadeUp 0.3s ease both; z-index:1; }
+  .item-card:hover { z-index:20; }
+  .item-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:3px 0 0 3px; }
+  .item-card.status-due { border-color:rgba(217,79,61,0.2); }
+  .item-card.status-due::before { background:var(--due); }
+  .item-card.status-soon { border-color:rgba(201,151,58,0.2); }
+  .item-card.status-soon::before { background:var(--soon); }
+  .item-card.status-ok::before { background:var(--sage); }
+  .item-card.status-snoozed { opacity:0.75; border-color:rgba(123,111,165,0.2); }
+  .item-card.status-snoozed::before { background:var(--snooze); }
+  .item-card:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.07); }
+  .item-card.checked { opacity:0.55; background:var(--sage-pale); border-color:var(--sage-light) !important; }
+  .item-card.checked::before { background:var(--sage) !important; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  .card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .card-left { display:flex; align-items:flex-start; gap:10px; flex:1; min-width:0; }
+  .checkbox { width:18px; height:18px; flex-shrink:0; border:2px solid var(--ink-faint); border-radius:4px; display:flex; align-items:center; justify-content:center; margin-top:2px; transition:all 0.15s; }
+  .item-card.checked .checkbox { background:var(--sage); border-color:var(--sage); }
+  .checkbox svg { display:none; }
+  .item-card.checked .checkbox svg { display:block; }
+  .card-name-wrap { flex:1; min-width:0; }
+  .card-name { font-size:0.92rem; font-weight:500; color:var(--ink); line-height:1.3; }
+  .card-sub { font-size:0.72rem; color:var(--ink-faint); margin-top:2px; text-transform:uppercase; letter-spacing:0.05em; }
+  .store-badge { flex-shrink:0; font-size:0.68rem; font-weight:600; letter-spacing:0.05em; padding:3px 7px; border-radius:4px; text-transform:uppercase; }
+  .badge-instacart { background:var(--sage-pale); color:var(--sage); }
+  .badge-erewhon { background:var(--gold-pale); color:var(--gold); }
+
+  .card-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .status-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:100px; font-size:0.72rem; font-weight:500; }
+  .pill-due { background:var(--due-pale); color:var(--due); }
+  .pill-soon { background:var(--soon-pale); color:var(--soon); }
+  .pill-ok { background:var(--ok-pale); color:var(--ok); }
+  .pill-snoozed { background:var(--snooze-pale); color:var(--snooze); }
+  .last-ordered { font-size:0.7rem; color:var(--ink-faint); font-family:'DM Mono',monospace; }
+  .card-sku { font-size:0.68rem; color:var(--ink-faint); margin-top:3px; font-family:'DM Mono',monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+  .freq-label { font-size:0.7rem; color:var(--ink-faint); display:flex; align-items:center; gap:4px; }
+
+  /* CARD HOVER ACTIONS */
+  .card-actions { display:none; position:absolute; bottom:12px; right:12px; gap:5px; z-index:5; }
+  .item-card:hover .card-actions { display:flex; }
+  .item-card.checked .card-actions { display:none; }
+  .card-btn { font-size:0.68rem; padding:4px 9px; border-radius:4px; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:500; transition:all 0.12s; white-space:nowrap; }
+  .card-btn-ordered { background:var(--sage); color:white; }
+  .card-btn-ordered:hover { background:#6a8e6e; }
+  .card-btn-undo { background:var(--paper); color:var(--ink-light); border:1.5px solid #ddd; }
+  .card-btn-undo:hover { background:#e0dbd3; color:var(--ink); }
+  .card-btn-snooze { background:var(--snooze-pale); color:var(--snooze); }
+  .card-btn-snooze:hover { background:#d8d3ee; }
+  .card-btn-unsnooze { background:var(--snooze); color:white; }
+  .card-btn-unsnooze:hover { background:#6a5e9a; }
+
+  /* SNOOZE PICKER — rendered fixed via JS to escape any overflow context */
+  .snooze-picker-popup {
+    position:fixed; background:white; border:1.5px solid var(--paper); border-radius:8px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.14); z-index:999; overflow:hidden; min-width:150px;
+    animation:fadeUp 0.15s ease;
+  }
+  .snooze-picker-title { padding:8px 14px 4px; font-size:0.68rem; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.06em; }
+  .snooze-option { padding:7px 14px; font-size:0.8rem; cursor:pointer; color:var(--ink-light); transition:background 0.1s; border:none; background:none; width:100%; text-align:left; font-family:'DM Sans',sans-serif; display:block; }
+  .snooze-option:hover { background:var(--snooze-pale); color:var(--snooze); }
+  .snooze-divider { height:1px; background:var(--paper); margin:3px 0; }
+
+  /* ── RECIPE MODAL ── */
+  .recipe-modal { width:580px; max-width:95vw; max-height:90vh; overflow-y:auto; }
+  .recipe-modal h2 { font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:6px; }
+  .recipe-modal .subtitle { font-size:0.8rem; color:var(--ink-faint); margin-bottom:20px; }
+
+  .recipe-steps { display:flex; gap:0; margin-bottom:20px; }
+  .recipe-step-dot { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+  .step-circle { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:600; background:var(--paper); color:var(--ink-faint); border:2px solid var(--paper); transition:all 0.2s; flex-shrink:0; }
+  .step-circle.active { background:var(--ink); color:white; border-color:var(--ink); }
+  .step-circle.done { background:var(--sage); color:white; border-color:var(--sage); }
+  .step-label { font-size:0.65rem; color:var(--ink-faint); text-align:center; white-space:nowrap; }
+  .step-line { flex:1; height:2px; background:var(--paper); margin-top:13px; }
+  .step-line.done { background:var(--sage); }
+
+  .recipe-input-area { border:2px dashed var(--paper); border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:16px; }
+  .recipe-input-area:hover { border-color:var(--sage); background:var(--sage-pale); }
+  .recipe-input-area.has-content { border-style:solid; border-color:var(--sage-light); background:var(--sage-pale); }
+  .recipe-input-area svg { color:var(--ink-faint); margin-bottom:8px; }
+  .recipe-input-area p { font-size:0.82rem; color:var(--ink-faint); margin-bottom:4px; }
+  .recipe-input-area small { font-size:0.72rem; color:var(--ink-faint); }
+  #recipe-file-input { display:none; }
+
+  .recipe-url-row { display:flex; gap:8px; margin-bottom:16px; }
+  .recipe-url-row input { flex:1; padding:9px 12px; border:1.5px solid var(--paper); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.82rem; outline:none; transition:border-color 0.15s; }
+  .recipe-url-row input:focus { border-color:var(--sage); }
+  .recipe-url-row input::placeholder { color:var(--ink-faint); }
+
+  .recipe-paste-area { width:100%; min-height:80px; padding:10px 12px; border:1.5px solid var(--paper); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.82rem; resize:vertical; outline:none; transition:border-color 0.15s; color:var(--ink); }
+  .recipe-paste-area:focus { border-color:var(--sage); }
+  .recipe-paste-area::placeholder { color:var(--ink-faint); }
+
+  .recipe-divider { display:flex; align-items:center; gap:10px; margin:12px 0; font-size:0.72rem; color:var(--ink-faint); }
+  .recipe-divider::before, .recipe-divider::after { content:''; flex:1; height:1px; background:var(--paper); }
+
+  .ai-thinking { display:flex; align-items:center; gap:10px; padding:16px; background:var(--sage-pale); border-radius:8px; margin-bottom:16px; }
+  .ai-thinking .dots span { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--sage); margin-right:3px; animation:bounce 1.2s infinite; }
+  .ai-thinking .dots span:nth-child(2) { animation-delay:0.2s; }
+  .ai-thinking .dots span:nth-child(3) { animation-delay:0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+  .ai-thinking p { font-size:0.82rem; color:var(--ok); font-weight:500; }
+
+  .recipe-parsed { background:var(--paper); border-radius:8px; padding:14px 16px; margin-bottom:16px; }
+  .recipe-parsed-title { font-weight:600; font-size:0.88rem; margin-bottom:10px; color:var(--ink); }
+  .recipe-ingredient-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(0,0,0,0.05); font-size:0.82rem; }
+  .recipe-ingredient-row:last-child { border-bottom:none; }
+  .ri-name { flex:1; color:var(--ink); }
+  .ri-qty { color:var(--ink-faint); font-family:'DM Mono',monospace; font-size:0.75rem; min-width:80px; text-align:right; }
+
+  .stock-check-section { margin-bottom:16px; }
+  .stock-check-title { font-size:0.82rem; font-weight:600; color:var(--ink); margin-bottom:10px; }
+  .stock-check-subtitle { font-size:0.76rem; color:var(--ink-faint); margin-bottom:12px; }
+  .stock-item-row { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:white; border-radius:7px; margin-bottom:6px; border:1.5px solid var(--paper); }
+  .stock-item-name { font-size:0.84rem; color:var(--ink); flex:1; }
+  .stock-item-qty { font-size:0.75rem; color:var(--ink-faint); font-family:'DM Mono',monospace; margin-right:12px; }
+  .stock-toggle { display:flex; border:1.5px solid var(--paper); border-radius:5px; overflow:hidden; }
+  .stock-toggle-btn { padding:4px 10px; font-size:0.72rem; font-weight:500; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; background:white; color:var(--ink-faint); transition:all 0.12s; }
+  .stock-toggle-btn.active-yes { background:var(--ok-pale); color:var(--ok); }
+  .stock-toggle-btn.active-no { background:var(--due-pale); color:var(--due); }
+  .stock-already-ordered { font-size:0.7rem; color:var(--sage); background:var(--sage-pale); padding:2px 7px; border-radius:4px; }
+  .stock-already-due { font-size:0.7rem; color:var(--soon); background:var(--soon-pale); padding:2px 7px; border-radius:4px; }
+
+  .items-to-add-section { margin-bottom:16px; }
+  .items-to-add-title { font-size:0.82rem; font-weight:600; color:var(--ink); margin-bottom:4px; }
+  .items-to-add-subtitle { font-size:0.76rem; color:var(--ink-faint); margin-bottom:12px; }
+  .new-item-row { display:flex; align-items:center; gap:8px; padding:8px 12px; background:white; border-radius:7px; margin-bottom:6px; border:1.5px solid var(--paper); }
+  .new-item-check { width:16px; height:16px; flex-shrink:0; accent-color:var(--sage); cursor:pointer; }
+  .new-item-info { flex:1; }
+  .new-item-name { font-size:0.84rem; color:var(--ink); font-weight:500; }
+  .new-item-detail { font-size:0.72rem; color:var(--ink-faint); margin-top:1px; }
+  .new-item-store { font-size:0.68rem; padding:2px 7px; border-radius:4px; font-weight:600; }
+
+  .recipe-error { background:var(--due-pale); border-radius:8px; padding:12px 14px; font-size:0.82rem; color:var(--due); margin-bottom:16px; }
+
+  .stock-match-pill { font-size:0.68rem; color:var(--ink-faint); background:var(--paper); padding:2px 7px; border-radius:4px; margin-left:6px; font-style:italic; }
+  .stock-match-confirm { display:flex; flex-direction:column; gap:4px; align-items:flex-end; }
+  .stock-match-label { font-size:0.68rem; color:var(--ink-faint); text-align:right; }
+  .permanence-toggle { display:flex; border:1.5px solid var(--paper); border-radius:5px; overflow:hidden; margin-left:auto; flex-shrink:0; }
+  .permanence-btn { padding:4px 9px; font-size:0.7rem; font-weight:500; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; background:white; color:var(--ink-faint); transition:all 0.12s; white-space:nowrap; }
+  .permanence-btn.active-perm { background:var(--sage-pale); color:var(--ok); }
+  .permanence-btn.active-once { background:var(--soon-pale); color:var(--soon); }
+
+  /* DEV NOTES PANEL */
+  .dev-panel { position:fixed; bottom:20px; right:20px; width:340px; background:var(--ink); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.2); z-index:200; overflow:hidden; transition:all 0.2s; }
+  .dev-panel.collapsed .dev-body { display:none; }
+  .dev-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; cursor:pointer; user-select:none; }
+  .dev-header-left { display:flex; align-items:center; gap:8px; }
+  .dev-title { font-size:0.78rem; font-weight:600; color:rgba(255,255,255,0.9); letter-spacing:0.04em; text-transform:uppercase; }
+  .dev-badge { font-size:0.65rem; background:var(--gold); color:white; padding:2px 7px; border-radius:10px; font-weight:600; }
+  .dev-toggle { font-size:0.75rem; color:rgba(255,255,255,0.4); }
+  .dev-body { padding:0 16px 16px; max-height:360px; overflow-y:auto; }
+  .dev-section-title { font-size:0.65rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.3); margin:12px 0 6px; }
+  .dev-item { display:flex; align-items:flex-start; gap:8px; padding:7px 10px; background:rgba(255,255,255,0.06); border-radius:6px; margin-bottom:4px; }
+  .dev-item-check { width:14px; height:14px; flex-shrink:0; margin-top:2px; accent-color:var(--gold); cursor:pointer; }
+  .dev-item-text { font-size:0.78rem; color:rgba(255,255,255,0.75); line-height:1.4; flex:1; }
+  .dev-item-text.done { text-decoration:line-through; color:rgba(255,255,255,0.3); }
+  .dev-item-del { background:none; border:none; color:rgba(255,255,255,0.2); cursor:pointer; font-size:0.9rem; padding:0 2px; line-height:1; flex-shrink:0; }
+  .dev-item-del:hover { color:var(--due); }
+  .dev-add-row { display:flex; gap:6px; margin-top:10px; }
+  .dev-add-input { flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:5px; padding:6px 10px; font-family:'DM Sans',sans-serif; font-size:0.78rem; color:white; outline:none; }
+  .dev-add-input::placeholder { color:rgba(255,255,255,0.3); }
+  .dev-add-input:focus { border-color:var(--gold); }
+  .dev-add-btn { background:var(--gold); border:none; border-radius:5px; color:white; font-size:0.78rem; font-weight:600; padding:6px 12px; cursor:pointer; font-family:'DM Sans',sans-serif; white-space:nowrap; }
+  .dev-add-btn:hover { background:#b8822a; }
+  .dev-note { font-size:0.72rem; color:rgba(255,255,255,0.3); font-style:italic; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); }
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(28,26,23,0.6);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex !important; }
+  .modal {
+    background: white;
+    border-radius: 14px;
+    padding: 28px;
+    width: 420px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 10000;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal h2 { font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:20px; }
+  .form-row { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+  .form-row label { font-size:0.75rem; font-weight:500; color:var(--ink-light); letter-spacing:0.03em; text-transform:uppercase; }
+  .form-row input, .form-row select { padding:9px 12px; border:1.5px solid var(--paper); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.88rem; color:var(--ink); background:white; outline:none; transition:border-color 0.15s; }
+  .form-row input:focus, .form-row select:focus { border-color:var(--sage); }
+  .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .freq-range { display:flex; align-items:center; gap:8px; }
+  .freq-range input { text-align:center; }
+  .freq-range span { color:var(--ink-faint); font-size:0.82rem; white-space:nowrap; }
+  .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
+
+  .freq-filter-bar { margin:10px 40px 0; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .freq-chip { padding:4px 12px; border-radius:100px; font-size:0.74rem; font-weight:500; cursor:pointer; border:1.5px solid var(--paper); background:white; color:var(--ink-light); transition:all 0.15s; }
+  .freq-chip:hover { border-color:var(--ink-light); color:var(--ink); }
+  .freq-chip.active { background:var(--ink); color:white; border-color:var(--ink); }
+  .freq-filter-label { font-size:0.7rem; color:var(--ink-faint); font-weight:500; letter-spacing:0.04em; text-transform:uppercase; margin-right:2px; } display:flex; align-items:center; gap:12px; font-size:0.72rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint); }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--paper); }
+
+  /* IMPORT RESULTS MODAL */
+  .import-modal { width:540px; max-width:95vw; }
+  .import-textarea { width:100%; min-height:160px; padding:10px 12px; border:1.5px solid var(--paper); border-radius:6px; font-family:'DM Mono',monospace; font-size:0.78rem; color:var(--ink); resize:vertical; outline:none; line-height:1.5; }
+  .import-textarea:focus { border-color:#3D7AB5; }
+  .import-result-row { display:flex; align-items:flex-start; gap:10px; padding:8px 12px; border-radius:7px; margin-bottom:5px; background:white; border:1.5px solid var(--paper); }
+  .import-result-icon { font-size:1rem; flex-shrink:0; margin-top:1px; }
+  .import-result-name { font-size:0.84rem; font-weight:500; color:var(--ink); }
+  .import-result-note { font-size:0.74rem; color:var(--ink-faint); margin-top:2px; }
+  .import-status-added { border-color:var(--ok-pale); background:var(--ok-pale); }
+  .import-status-substituted { border-color:var(--soon-pale); background:var(--soon-pale); }
+  .import-status-not_found { border-color:var(--due-pale); background:var(--due-pale); }
+  .import-status-out_of_stock { border-color:var(--due-pale); background:var(--due-pale); }
+  .import-summary { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .import-summary-chip { padding:4px 12px; border-radius:100px; font-size:0.76rem; font-weight:600; }
+  .import-chip-added { background:var(--ok-pale); color:var(--ok); }
+  .import-chip-sub { background:var(--soon-pale); color:var(--soon); }
+  .import-chip-missing { background:var(--due-pale); color:var(--due); }
+  .settings-modal { width:520px; max-width:95vw; max-height:90vh; overflow-y:auto; }
+  .settings-section { margin-bottom:22px; }
+  .settings-section-title { font-size:0.72rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--paper); }
+  .settings-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--paper); gap:16px; }
+  .settings-row:last-child { border-bottom:none; }
+  .settings-row-label { font-size:0.84rem; color:var(--ink); font-weight:500; }
+  .settings-row-sub { font-size:0.74rem; color:var(--ink-faint); margin-top:2px; }
+  .settings-row-control { flex-shrink:0; }
+  .settings-row-control select { padding:6px 10px; border:1.5px solid var(--paper); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.82rem; color:var(--ink); background:white; outline:none; }
+  .settings-row-control select:focus { border-color:var(--sage); }
+  .settings-textarea { width:100%; padding:10px 12px; border:1.5px solid var(--paper); border-radius:6px; font-family:'DM Sans',sans-serif; font-size:0.82rem; color:var(--ink); resize:vertical; outline:none; line-height:1.5; min-height:80px; }
+  .settings-textarea:focus { border-color:var(--sage); }
+  .prompt-preview { background:var(--paper); border-radius:8px; padding:12px 14px; font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--ink-light); line-height:1.6; max-height:160px; overflow-y:auto; white-space:pre-wrap; margin-top:8px; }
+    header,.summary-bar,.controls,.section-label,.grid,.category-view,.order-panel{margin-left:20px;margin-right:20px;}
+    .brand h1{font-size:2rem;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Smart Shopper</h1>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="toggleDevPanel()" style="border-color:rgba(201,151,58,0.4);color:var(--gold);font-size:0.75rem;padding:7px 12px">
+      📋 Dev Notes
+    </button>
+    <button class="btn btn-ghost" onclick="openImportModal()" style="font-size:0.75rem;padding:7px 12px;border-color:rgba(93,148,200,0.4);color:#3D7AB5">
+      ↩ Import Results
+    </button>
+    <button class="btn btn-ghost" onclick="openSettingsModal()" style="font-size:0.75rem;padding:7px 12px">
+      ⚙️ Settings
+    </button>
+    <button class="btn btn-ghost" onclick="toggleOrderPanel()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Order (<span id="order-count">0</span>)
+    </button>
+    <button class="btn btn-ghost" onclick="openRecipeModal()" style="border-color:var(--gold);color:var(--gold)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 1 5 5c0 3-2 5.5-5 7-3-1.5-5-4-5-7a5 5 0 0 1 5-5z"/><path d="M12 14v8"/><path d="M8 18h8"/></svg>
+      Add Recipe
+    </button>
+    <button class="btn btn-primary" onclick="openAddModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Item
+    </button>
+  </div>
+</header>
+
+<div class="summary-bar">
+  <div class="summary-chip chip-due active" onclick="setFilter('due')"><div class="chip-dot"></div><span id="due-count">0</span> Due Now</div>
+  <div class="summary-chip chip-soon" onclick="setFilter('soon')"><div class="chip-dot"></div><span id="soon-count">0</span> Order Soon</div>
+  <div class="summary-chip chip-ok" onclick="setFilter('ok')"><div class="chip-dot"></div><span id="ok-count">0</span> Stocked</div>
+  <div class="summary-chip chip-snooze" onclick="setFilter('snoozed')"><div class="chip-dot"></div><span id="snooze-count">0</span> Snoozed</div>
+  <div class="summary-chip chip-all" onclick="setFilter('all')">All Items</div>
+</div>
+
+<div class="freq-filter-bar">
+  <span class="freq-filter-label">Frequency</span>
+  <button class="freq-chip active" onclick="setFreqFilter('all',this)">All</button>
+  <button class="freq-chip" onclick="setFreqFilter('Weekly',this)">Weekly</button>
+  <button class="freq-chip" onclick="setFreqFilter('Bi-weekly',this)">Bi-weekly</button>
+  <button class="freq-chip" onclick="setFreqFilter('Monthly',this)">Monthly</button>
+  <button class="freq-chip" onclick="setFreqFilter('As needed',this)">As needed</button>
+</div>
+
+<div class="controls">
+  <div class="left-controls">
+    <div class="tab-group" id="store-tabs">
+      <button class="tab-btn active" onclick="setStore('all',this)">All Stores</button>
+    </div>
+    <div class="view-toggle">
+      <button class="view-btn active" onclick="setView('grid',this)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Grid
+      </button>
+      <button class="view-btn" onclick="setView('category',this)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg> Category
+      </button>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" placeholder="Search items…" oninput="setSearch(this.value)">
+  </div>
+</div>
+
+<div class="order-panel" id="order-panel">
+  <div class="order-panel-header">
+    <span class="order-panel-title">Today's Order</span>
+    <span class="order-count-label" id="order-panel-count">0 items</span>
+  </div>
+  <div class="order-items" id="order-items-list"></div>
+  <textarea id="order-copy-box" style="display:none;width:100%;margin:10px 0;padding:10px;background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-family:'DM Mono',monospace;font-size:0.75rem;resize:none;line-height:1.5" rows="8" readonly onclick="this.select()"></textarea>
+  <div id="order-copy-hint" style="display:none;font-size:0.72rem;color:rgba(255,255,255,0.5);margin-bottom:8px">Click the box above to select all, then Cmd+C / Ctrl+C to copy</div>
+  <div class="order-actions">
+    <span class="order-note">Paste into Claude in Chrome to fill your carts</span>
+    <button class="btn btn-ghost" style="color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.15)" onclick="clearOrder()">Clear</button>
+    <button class="btn btn-sage" id="copy-order-btn" onclick="exportOrder()">Copy Order + Prompt</button>
+  </div>
+</div>
+
+<div style="margin-top:20px"></div>
+<div class="section-label" id="section-label">All Items</div>
+<div class="grid" id="items-grid"></div>
+<div class="category-view" id="category-view" style="display:none"></div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modal-title">Add Item</h2>
+    <div class="form-row"><label>Item Name</label><input type="text" id="f-name" placeholder="e.g. Blueberries"></div>
+    <div class="form-row-2">
+      <div class="form-row" style="margin:0"><label>Category</label><input type="text" id="f-category" placeholder="e.g. Fruit" list="cat-list"><datalist id="cat-list"></datalist></div>
+      <div class="form-row" style="margin:0"><label>Store</label><select id="f-store" style="text-transform:capitalize"></select></div>
+    </div>
+    <div class="form-row"><label>Frequency Bucket</label>
+      <select id="f-bucket">
+        <option value="2-3x/week">2–3x per week (2–4 days)</option>
+        <option value="Weekly" selected>Weekly (7–10 days)</option>
+        <option value="Bi-weekly">Bi-weekly (12–18 days)</option>
+        <option value="Monthly">Monthly (25–35 days)</option>
+        <option value="As needed">As needed</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Custom Day Range</label>
+      <div class="freq-range">
+        <input type="number" id="f-min" placeholder="7" min="1" style="width:80px">
+        <span>to</span>
+        <input type="number" id="f-max" placeholder="10" min="1" style="width:80px">
+        <span>days</span>
+      </div>
+    </div>
+    <div class="form-row"><label>Last Ordered</label><input type="date" id="f-last"></div>
+    <div class="form-row"><label>Qty / Notes</label><input type="text" id="f-qty" placeholder="e.g. 1 pint, or 2 bottles"></div>
+    <div class="form-row">
+      <label>Preferred Brand / SKU
+        <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint);margin-left:4px">— exact product for Claude to find</span>
+      </label>
+      <input type="text" id="f-sku" placeholder="e.g. Good Culture 2% Milkfat Cottage Cheese 16oz">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-delete-item" onclick="deleteItem()" style="background:var(--due-pale);color:var(--due);display:none;margin-right:auto">Delete Item</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEV NOTES PANEL -->
+<div class="dev-panel collapsed" id="dev-panel">
+  <div class="dev-header" onclick="toggleDevPanel()">
+    <div class="dev-header-left">
+      <span class="dev-title">Dev Notes</span>
+      <span class="dev-badge" id="dev-badge">0</span>
+    </div>
+    <span class="dev-toggle" id="dev-toggle-icon">▲ show</span>
+  </div>
+  <div class="dev-body">
+    <div class="dev-section-title">To-Do</div>
+    <div id="dev-notes-list"></div>
+    <div class="dev-add-row">
+      <input class="dev-add-input" id="dev-new-note" placeholder="Add a note…" onkeydown="if(event.key==='Enter') addDevNote()">
+      <button class="dev-add-btn" onclick="addDevNote()">+ Add</button>
+    </div>
+    <div class="dev-note" style="margin-top:12px">Upload this HTML file to a new Claude chat to continue. Say: "Continue building my Pantry grocery planner."</div>
+  </div>
+</div>
+
+<!-- IMPORT RESULTS MODAL -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal import-modal">
+    <h2>Import Cart Results</h2>
+
+    <div id="import-step-1">
+      <p style="font-size:0.84rem;color:var(--ink-light);margin-bottom:16px">After Claude fills your carts, copy the JSON results block it outputs and paste it below. The app will update item statuses automatically.</p>
+      <div class="form-row">
+        <label>Paste Results JSON</label>
+        <textarea class="import-textarea" id="import-json-input" placeholder='Paste the JSON block here, e.g.:
+{
+  "results": [
+    {"name": "Organic Bananas", "status": "added", "note": ""},
+    {"name": "FAGE Greek Yogurt", "status": "not_found", "note": "Could not locate"}
+  ]
+}'></textarea>
+      </div>
+      <div id="import-parse-error" class="recipe-error" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="parseImportResults()">Parse Results →</button>
+      </div>
+    </div>
+
+    <div id="import-step-2" style="display:none">
+      <div class="import-summary" id="import-summary"></div>
+      <div id="import-results-list"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="showImportStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="applyImportResults()">Apply Updates</button>
+      </div>
+    </div>
+
+    <div id="import-step-3" style="display:none">
+      <div style="text-align:center;padding:24px 0">
+        <div style="font-size:2rem;margin-bottom:10px">✓</div>
+        <div style="font-weight:600;font-size:1rem;margin-bottom:6px">Statuses updated</div>
+        <div style="font-size:0.82rem;color:var(--ink-faint)" id="import-done-summary"></div>
+      </div>
+      <div class="modal-actions" style="justify-content:center">
+        <button class="btn btn-primary" onclick="closeImportModal()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal settings-modal">
+    <h2>Settings</h2>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Substitution Preferences</div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Allow substitutions by default</div>
+          <div class="settings-row-sub">What should Claude do when an item isn't available?</div>
+        </div>
+        <div class="settings-row-control">
+          <select id="s-sub-default">
+            <option value="no">Never substitute</option>
+            <option value="organic" selected>Only if organic equivalent exists</option>
+            <option value="similar">Similar product OK</option>
+            <option value="any">Any substitution OK</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Always stay organic</div>
+          <div class="settings-row-sub">Claude will never substitute a non-organic item</div>
+        </div>
+        <div class="settings-row-control">
+          <select id="s-organic">
+            <option value="yes" selected>Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Quantity substitutions</div>
+          <div class="settings-row-sub">Can Claude upsize or change pack size?</div>
+        </div>
+        <div class="settings-row-control">
+          <select id="s-qty">
+            <option value="no">Never change quantity</option>
+            <option value="up" selected>Upsize only if needed</option>
+            <option value="any">Any size OK</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div>
+          <div class="settings-row-label">Additional substitution rules</div>
+          <div class="settings-row-sub">Any other instructions for Claude when items aren't available</div>
+        </div>
+        <textarea class="settings-textarea" id="s-sub-notes" placeholder="e.g. Never substitute dairy items. For produce, closest weight is fine. Prefer Gelson's brand over national brands."></textarea>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Prompt Preview</div>
+      <div class="settings-row-sub" style="margin-bottom:8px">This is what gets prepended when you tap "Copy Order + Prompt"</div>
+      <div class="prompt-preview" id="prompt-preview"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeSettingsModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="recipe-modal">
+  <div class="modal recipe-modal">
+    <h2>Add Recipe to Order</h2>
+    <p class="subtitle">Claude will parse the recipe, match ingredients to your stores, and only add what you still need.</p>
+
+    <!-- Step indicator -->
+    <div class="recipe-steps" id="recipe-steps">
+      <div class="recipe-step-dot">
+        <div class="step-circle active" id="step-c-1">1</div>
+        <div class="step-label">Import</div>
+      </div>
+      <div class="step-line" id="step-l-1"></div>
+      <div class="recipe-step-dot">
+        <div class="step-circle" id="step-c-2">2</div>
+        <div class="step-label">Stock Check</div>
+      </div>
+      <div class="step-line" id="step-l-2"></div>
+      <div class="recipe-step-dot">
+        <div class="step-circle" id="step-c-3">3</div>
+        <div class="step-label">Review</div>
+      </div>
+      <div class="step-line" id="step-l-3"></div>
+      <div class="recipe-step-dot">
+        <div class="step-circle" id="step-c-4">4</div>
+        <div class="step-label">Add to Order</div>
+      </div>
+    </div>
+
+    <div id="recipe-step-1">
+      <!-- Image upload -->
+      <div class="recipe-input-area" id="recipe-drop-zone" onclick="document.getElementById('recipe-file-input').click()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <p id="drop-label">Drop a screenshot or click to upload</p>
+        <small id="drop-sub">PNG, JPG, WEBP supported</small>
+      </div>
+      <input type="file" id="recipe-file-input" accept="image/*">
+
+      <div class="recipe-divider">or paste a URL</div>
+      <div class="recipe-url-row">
+        <input type="text" id="recipe-url" placeholder="https://www.example.com/recipe/chicken-piccata">
+        <button class="btn btn-ghost" onclick="useRecipeUrl()" style="white-space:nowrap">Use URL</button>
+      </div>
+
+      <div class="recipe-divider">or paste the recipe text</div>
+      <textarea class="recipe-paste-area" id="recipe-text" placeholder="Paste recipe ingredients here…&#10;e.g. 2 cups all-purpose flour&#10;1 lb boneless chicken breast&#10;3 cloves garlic…"></textarea>
+
+      <div id="recipe-step1-error" class="recipe-error" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeRecipeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="parseRecipe()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+          Parse Recipe with Claude
+        </button>
+      </div>
+    </div>
+
+    <div id="recipe-step-2" style="display:none">
+      <div id="recipe-thinking" class="ai-thinking" style="display:none">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <p id="thinking-msg">Claude is reading the recipe…</p>
+      </div>
+      <div id="recipe-parsed-ingredients"></div>
+      <div id="recipe-step2-error" class="recipe-error" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="goRecipeStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="goRecipeStep(3)" id="btn-to-stock">Check My Stock →</button>
+      </div>
+    </div>
+
+    <div id="recipe-step-3" style="display:none">
+      <div class="stock-check-section">
+        <div class="stock-check-title">Review & confirm</div>
+        <div class="stock-check-subtitle">Claude has matched some ingredients to your grocery list — confirm each match. For others, tell us if you already have them at home.</div>
+        <div id="stock-check-list"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="goRecipeStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="buildAddList()">See What to Order →</button>
+      </div>
+    </div>
+
+    <div id="recipe-step-4" style="display:none">
+      <div class="items-to-add-section">
+        <div class="items-to-add-title">Items to add to your next order</div>
+        <div class="items-to-add-subtitle">Uncheck anything you don't want to add.</div>
+        <div id="items-to-add-list"></div>
+      </div>
+      <div id="recipe-step4-error" class="recipe-error" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="goRecipeStep(3)">← Back</button>
+        <button class="btn btn-sage" onclick="addRecipeItemsToOrder()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add to Order
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STORE DISPLAY ──
+// Colors cycle through this palette for any store found in the data
+const STORE_PALETTE = [
+  { bg:'#E8F0E9', color:'#5A8A5E' },  // sage green — Erewhon
+  { bg:'#FDF0E8', color:'#B8622A' },  // terracotta — Gelson's
+  { bg:'#E8EEF8', color:'#3D5FA0' },  // blue
+  { bg:'#F5EDD8', color:'#9A7230' },  // gold
+  { bg:'#F2E8F5', color:'#7A4FA0' },  // purple
+];
+// Known store display names (lowercase key → display name)
+const STORE_NAMES = { erewhon:'Erewhon', gelsons:"Gelson's", sprouts:'Sprouts', target:'Target' };
+
+let storeColorMap = {}; // built dynamically from items
+
+function buildStoreColorMap() {
+  const stores = [...new Set(items.map(i => i.store))].sort();
+  storeColorMap = {};
+  stores.forEach((s, idx) => {
+    storeColorMap[s] = STORE_PALETTE[idx % STORE_PALETTE.length];
+  });
+}
+
+function storeName(storeKey) {
+  return STORE_NAMES[storeKey] || storeKey.charAt(0).toUpperCase() + storeKey.slice(1);
+}
+
+function storeTagStyle(storeKey) {
+  const c = storeColorMap[storeKey] || STORE_PALETTE[0];
+  return `background:${c.bg};color:${c.color};`;
+}
+
+function rebuildStoreTabs() {
+  const stores = [...new Set(items.map(i => i.store))].sort();
+  const container = document.getElementById('store-tabs');
+  container.innerHTML = `<button class="tab-btn ${activeStore==='all'?'active':''}" onclick="setStore('all',this)">All Stores</button>`;
+  stores.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (activeStore===s?' active':'');
+    btn.textContent = storeName(s);
+    btn.onclick = function(){ setStore(s, this); };
+    container.appendChild(btn);
+  });
+}
+
+function rebuildStoreSelect(currentVal) {
+  const stores = [...new Set(items.map(i => i.store))].sort();
+  const sel = document.getElementById('f-store');
+  sel.innerHTML = stores.map(s => `<option value="${s}"${s===currentVal?' selected':''}>${storeName(s)}</option>`).join('');
+}
+const PREFERRED_CATS = ['Dairy','Meat','Cheese','Snacks','Pantry','Fruit'];
+const MIN_CAT_SIZE = 2;
+
+// ── DATA ──
+let items = [
+  {id:1, name:"Morning Star Farms Veggie Breakfast Sausage Patties", category:"Frozen", store:"gelsons", bucket:"Bi-weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"2 packs", sku:"Morning Star Farms Veggie Breakfast Original Sausage Patties 6ct", checked:false, snoozedUntil:null},
+  {id:2, name:"Broccoli Broccolette Organic", category:"Produce", store:"gelsons", bucket:"Weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"~1 lb", sku:"Broccoli Broccolette Organic", checked:false, snoozedUntil:null},
+  {id:3, name:"Fairfield Farms Organic Blueberries", category:"Fruit", store:"gelsons", bucket:"Weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"1 pkg", sku:"Fairfield Farms Organic Blueberries", checked:false, snoozedUntil:null},
+  {id:4, name:"Tillamook Extra Sharp White Cheddar Cracker Cut", category:"Cheese", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 pkg", sku:"Tillamook Extra Sharp White Cheddar Cracker Cut Cheese", checked:false, snoozedUntil:null},
+  {id:5, name:"Organic Lacinato Kale", category:"Produce", store:"gelsons", bucket:"Weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"2 bunches", sku:"Organic Lacinato Kale Bunch", checked:false, snoozedUntil:null},
+  {id:6, name:"HATCH Organic Mild Red Enchilada Sauce", category:"Pantry", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1-2 cans", sku:"HATCH Organic Mild Red Enchilada Sauce", checked:false, snoozedUntil:null},
+  {id:7, name:"HATCH Diced Green Chili Mild", category:"Pantry", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1-2 cans", sku:"HATCH Diced Green Chili Mild", checked:false, snoozedUntil:null},
+  {id:8, name:"Organic Zucchini Squash", category:"Produce", store:"gelsons", bucket:"Weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"~0.75 lb", sku:"Organic Zucchini Squash", checked:false, snoozedUntil:null},
+  {id:9, name:"Tofurky Plant-Based Roasted Turk'y Deli Slices", category:"Deli", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"2 packs", sku:"Tofurky Plant-Based Roasted Turk'y Deli Slices", checked:false, snoozedUntil:null},
+  {id:10, name:"Gelson's Parmigiano Reggiano Cheese", category:"Cheese", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"~0.5 lb", sku:"Gelson's Parmigiano Reggiano Cheese", checked:false, snoozedUntil:null},
+  {id:11, name:"Michele's Granola Original", category:"Pantry", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bag", sku:"Michele's Granola Original", checked:false, snoozedUntil:null},
+  {id:12, name:"Organic Red Onion", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"~1 lb", sku:"Organic Red Onion", checked:false, snoozedUntil:null},
+  {id:13, name:"Good-Life Organic Grape Tomatoes", category:"Produce", store:"gelsons", bucket:"Weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"1 pkg", sku:"Good-Life Organic Grape Tomatoes", checked:false, snoozedUntil:null},
+  {id:14, name:"Organic Russet Potato", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"~3 lb", sku:"Organic Russet Potato", checked:false, snoozedUntil:null},
+  {id:15, name:"Alexandre Family Farm A2/A2 Grass-fed Milk", category:"Dairy", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bottle", sku:"Alexandre Family Farm Certified Regenerative Organic A2/A2 Grass-fed Milk", checked:false, snoozedUntil:null},
+  {id:16, name:"Oven Classic Turkey Breast", category:"Deli", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"~0.5 lb", sku:"Oven Classic Turkey Breast", checked:false, snoozedUntil:null},
+  {id:17, name:"Lundberg Family Farms Organic Thin Stackers", category:"Snacks", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bag", sku:"Lundberg Family Farms Organic Thin Stackers Lightly Salted", checked:false, snoozedUntil:null},
+  {id:20, name:"Black Forest Organic Gummy Bears", category:"Snacks", store:"target", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 bag", sku:"Black Forest Gummy Bears Organic", checked:false, snoozedUntil:null},
+  {id:23, name:"Bob's Red Mill PB Banana Oats Bar", category:"Snacks", store:"sprouts", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"6 bars", sku:"Bob's Red Mill Peanut Butter Banana & Oats Bob's Better Bar", checked:false, snoozedUntil:null},
+  {id:24, name:"Spice World Organic Garlic Bag", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bag", sku:"Spice World Organic Garlic Bag 3ct", checked:false, snoozedUntil:null},
+  {id:25, name:"Limes", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"4", sku:"Limes", checked:false, snoozedUntil:null},
+  {id:26, name:"Valbreso Feta Chunk", category:"Cheese", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1-2 pcs", sku:"Valbreso Feta Chunk", checked:false, snoozedUntil:null},
+  {id:27, name:"Devine Organics Organic Asparagus", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"~1 lb", sku:"Devine Organics Organic Asparagus", checked:false, snoozedUntil:null},
+  {id:28, name:"Isigny Ste Mere Butter Sea Salt Crystals", category:"Dairy", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1", sku:"Isigny Ste Mère Butter Sea Salt Crystals", checked:false, snoozedUntil:null},
+  {id:29, name:"Vital Farms Pasture Raised Large Eggs 18ct", category:"Dairy", store:"gelsons", bucket:"Monthly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 carton", sku:"Vital Farms 18ct Pasture Raised Large Grade A Eggs", checked:false, snoozedUntil:null},
+  {id:31, name:"Organic Bananas", category:"Fruit", store:"gelsons", bucket:"Bi-weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"~1.5 lb", sku:"Organic Bananas", checked:false, snoozedUntil:null},
+  {id:33, name:"Bubbies Mochi Ice Cream", category:"Frozen", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1-2 packs", sku:"Bubbies Hawaii Mochi Ice Cream Bites", checked:false, snoozedUntil:null},
+  {id:34, name:"Snyder's of Hanover Sourdough Pretzels", category:"Snacks", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bag", sku:"Snyder's of Hanover Sourdough Pretzels", checked:false, snoozedUntil:null},
+  {id:36, name:"Pace Chunky Mild Salsa", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"2 jars", sku:"Pace Chunky Mild Salsa", checked:false, snoozedUntil:null},
+  {id:37, name:"FAGE Greek Yogurt", category:"Dairy", store:"gelsons", bucket:"Bi-weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"1", sku:"FAGE Total Greek Yogurt", checked:false, snoozedUntil:null},
+  {id:40, name:"Lakewood Organic Pineapple Juice", category:"Beverages", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bottle", sku:"Lakewood Organic Pure Pineapple Juice", checked:false, snoozedUntil:null},
+  {id:41, name:"Peroni 12 Pack Beer", category:"Beverages", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 pack", sku:"Peroni Nastro Azzurro Italian-Style Lager Beer 12 Pack", checked:false, snoozedUntil:null},
+  {id:42, name:"Applegate Organic Chicken Strips", category:"Frozen", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1-2 packs", sku:"Applegate Organics Organic Chicken Strips", checked:false, snoozedUntil:null},
+  {id:43, name:"Guerrero Flour Tortillas Burrito Size", category:"Pantry", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 pack", sku:"Guerrero Riquisimas Flour Tortillas Burrito Grande Size 8ct", checked:false, snoozedUntil:null},
+  {id:44, name:"Eden Foods EDENSOY Soymilk Unsweetened", category:"Dairy", store:"lassens", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 carton", sku:"Eden Foods EDENSOY Soymilk Unsweetened", checked:false, snoozedUntil:null},
+  {id:45, name:"Thomas' Sourdough English Muffins", category:"Pantry", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 pkg", sku:"Thomas' 6 count Sourdough English Muffins", checked:false, snoozedUntil:null},
+  {id:46, name:"Mi Rancho Organic Corn Tortillas", category:"Pantry", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 pkg", sku:"Mi Rancho Organic Corn Tortillas", checked:false, snoozedUntil:null},
+  {id:47, name:"Mission 10 Inch Burrito Tortillas", category:"Pantry", store:"sprouts", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 pkg", sku:"Mission 10 Inch Burrito Tortillas", checked:false, snoozedUntil:null},
+  {id:48, name:"Bob's Red Mill Organic Extra Thick Rolled Oats", category:"Pantry", store:"sprouts", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 bag", sku:"Bob's Red Mill Organic Extra Thick Rolled Oats", checked:false, snoozedUntil:null},
+  {id:49, name:"Bob's Red Mill Organic Creamy Wheat Hot Cereal", category:"Pantry", store:"sprouts", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 bag", sku:"Bob's Red Mill Organic Creamy Wheat Hot Cereal", checked:false, snoozedUntil:null},
+  {id:50, name:"Near East Original Rice Pilaf Mix", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"2 boxes", sku:"Near East Original Rice Pilaf Mix", checked:false, snoozedUntil:null},
+  {id:51, name:"Bob's Red Mill Unsweetened Shredded Coconut", category:"Pantry", store:"sprouts", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 bag", sku:"Bob's Red Mill Unsweetened Shredded Coconut", checked:false, snoozedUntil:null},
+  {id:52, name:"Wasa Light Rye Crispbread Crackers", category:"Snacks", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 pkg", sku:"Wasa Light Rye Swedish Style Crispbread Crackers", checked:false, snoozedUntil:null},
+  {id:53, name:"Chicas Sea Salt Corn Tortilla Chips", category:"Snacks", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bag", sku:"Chicas Sea Salt Authentic Corn Tortilla Chips", checked:false, snoozedUntil:null},
+  {id:54, name:"Divina Organic Pitted Castelvetrano Olives", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 jar", sku:"Divina Organic Pitted Castelvetrano Olives", checked:false, snoozedUntil:null},
+  {id:55, name:"LesserEvil Organic Popcorn Himalayan Gold", category:"Snacks", store:"gelsons", bucket:"Monthly", minDays:12, maxDays:18, lastOrdered:null, qty:"2 bags", sku:"LesserEvil Organic Popcorn Himalayan Gold", checked:false, snoozedUntil:null},
+  {id:56, name:"Tru Fru Frozen Bananas Dark Chocolate Peanut Butter", category:"Frozen", store:"target", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1", sku:"Tru Fru Frozen Bananas in Dark Chocolate & Peanut Butter", checked:false, snoozedUntil:null},
+  {id:57, name:"Abe's Muffins Wild Blueberry Vegan", category:"Bakery", store:"gelsons", bucket:"Monthly", minDays:12, maxDays:18, lastOrdered:null, qty:"1", sku:"Abe's Muffins Wild Blueberry Vegan", checked:false, snoozedUntil:null},
+  {id:58, name:"Petit Pot Organic French Dessert", category:"Dairy", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1-2", sku:"Petit Pot Organic French Dessert", checked:false, snoozedUntil:null},
+  {id:59, name:"Heinz Organic Tomato Ketchup", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1", sku:"Heinz Organic Tomato Ketchup", checked:false, snoozedUntil:null},
+  {id:60, name:"Dijon Mustard", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1", sku:"Grey Poupon Dijon Mustard", checked:false, snoozedUntil:null},
+  {id:61, name:"Heinz Yellow Mustard", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1", sku:"Heinz Yellow Mustard", checked:false, snoozedUntil:null},
+  {id:62, name:"Claussen Kosher Dill Pickle Spears", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 jar", sku:"Claussen Kosher Dill Pickle Spears", checked:false, snoozedUntil:null},
+  {id:63, name:"Girard's Caesar Dressing", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 bottle", sku:"Girard's Caesar Dressing", checked:false, snoozedUntil:null},
+  {id:64, name:"Mezzetta Sliced Golden Greek Peperoncini", category:"Pantry", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 jar", sku:"Mezzetta Sliced Golden Greek Peperoncini", checked:false, snoozedUntil:null},
+  {id:65, name:"Celtic Sea Salt Fine Ground", category:"Pantry", store:"gelsons", bucket:"As needed", minDays:150, maxDays:200, lastOrdered:null, qty:"1", sku:"Celtic Sea Salt Fine Ground Sea Salt", checked:false, snoozedUntil:null},
+  {id:66, name:"Reed's Classic Ginger Ale", category:"Beverages", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"2", sku:"Reed's Classic Ginger Ale", checked:false, snoozedUntil:null},
+  {id:67, name:"Scotch-Brite Non-Scratch Scrub Sponges", category:"Household", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"1 pack", sku:"Scotch-Brite Non-Scratch Scrub Sponges", checked:false, snoozedUntil:null},
+  {id:68, name:"Organic Baby Spinach", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:7, maxDays:10, lastOrdered:null, qty:"1 bag", sku:"Organic Baby Spinach", checked:false, snoozedUntil:null},
+  {id:69, name:"Earthbound Farm Organic Stalk Celery", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1", sku:"Earthbound Farm Organic Stalk Celery", checked:false, snoozedUntil:null},
+  {id:70, name:"Organic Leeks", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"~2 lb", sku:"Organic Leeks", checked:false, snoozedUntil:null},
+  {id:71, name:"Cal-Organic Farms Organic Peeled Carrots", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bag", sku:"Cal-Organic Farms Organic Peeled Carrots", checked:false, snoozedUntil:null},
+  {id:72, name:"Lemon", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"4", sku:"Lemon", checked:false, snoozedUntil:null},
+  {id:73, name:"Andy Boy Organic Romaine Hearts", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 pkg", sku:"Andy Boy Organic Romaine Hearts", checked:false, snoozedUntil:null},
+  {id:74, name:"Organic Green Onions", category:"Produce", store:"sprouts", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bunch", sku:"Organic Green Onions", checked:false, snoozedUntil:null},
+  {id:75, name:"Organic Yellow Onions Bag", category:"Produce", store:"sprouts", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bag", sku:"Organic Yellow Onions Bag", checked:false, snoozedUntil:null},
+  {id:76, name:"Organic Shallots", category:"Produce", store:"gelsons", bucket:"Bi-weekly", minDays:12, maxDays:18, lastOrdered:null, qty:"1", sku:"Organic Shallots", checked:false, snoozedUntil:null},
+  {id:77, name:"Grown In Idaho Crispy Hash Brown Dices", category:"Frozen", store:"gelsons", bucket:"Monthly", minDays:25, maxDays:35, lastOrdered:null, qty:"2 bags", sku:"Grown In Idaho Crispy Hash Brown Dices", checked:false, snoozedUntil:null},
+  {id:80, name:"Sprouts Frozen Organic Blueberries", category:"Frozen", store:"sprouts", bucket:"Monthly", minDays:12, maxDays:18, lastOrdered:null, qty:"1 bag", sku:"Sprouts Frozen Organic Blueberries", checked:false, snoozedUntil:null},
+];;
+
+let nextId = 81;
+let activeFilter = 'all', activeStore = 'all', searchQuery = '', editingId = null, activeFreq = 'all';
+let orderItems = [], orderPanelVisible = false, activeView = 'grid';
+
+function ago(n){ const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
+function today(){ return new Date().toISOString().split('T')[0]; }
+function addDays(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().split('T')[0]; }
+function daysSince(s){ if(!s) return null; return Math.floor((Date.now()-new Date(s).getTime())/86400000); }
+function isSnoozed(item){ return item.snoozedUntil && new Date(item.snoozedUntil)>new Date(); }
+
+function getStatus(item){
+  if(isSnoozed(item)) return 'snoozed';
+  if(item.bucket==='As needed') return 'ok';
+  const d=daysSince(item.lastOrdered);
+  if(d===null) return 'due';
+  if(d>=item.maxDays) return 'due';
+  if(d>=item.minDays) return 'soon';
+  return 'ok';
+}
+
+function getDaysLabel(item){
+  const d=daysSince(item.lastOrdered);
+  if(d===null) return 'Never ordered';
+  if(d===0) return 'Ordered today';
+  if(d===1) return '1 day ago';
+  return `${d} days ago`;
+}
+
+function getStatusLabel(item){
+  if(isSnoozed(item)){
+    const d=new Date(item.snoozedUntil);
+    return `Snoozed · ${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+  }
+  const s=getStatus(item), d=daysSince(item.lastOrdered);
+  if(s==='due') return 'Order Now';
+  if(s==='soon') return `Due in ~${item.minDays-d}d`;
+  if(item.bucket==='As needed') return 'As needed';
+  return `${item.minDays-d}d left`;
+}
+
+// ── SMART CATEGORY LOGIC ──
+function resolveRaw(item){ return (item.category||'').trim() || 'Other'; }
+
+function getSmartCats(filteredItems){
+  const counts={};
+  filteredItems.forEach(i=>{ const c=resolveRaw(i); counts[c]=(counts[c]||0)+1; });
+  const valid=[], tiny=[];
+  Object.entries(counts).forEach(([c,n])=>{ (n>=MIN_CAT_SIZE?valid:tiny).push(c); });
+  valid.sort((a,b)=>{
+    const ai=PREFERRED_CATS.indexOf(a), bi=PREFERRED_CATS.indexOf(b);
+    if(ai!==-1&&bi!==-1) return ai-bi;
+    if(ai!==-1) return -1; if(bi!==-1) return 1;
+    return a.localeCompare(b);
+  });
+  if(tiny.length) valid.push('Other');
+  return {valid,tiny};
+}
+
+function displayCat(item,tiny){ const r=resolveRaw(item); return tiny.includes(r)?'Other':r; }
+
+// ── RENDER ──
+function render(){
+  buildStoreColorMap();
+  rebuildStoreTabs();
+  const statuses=items.map(getStatus);
+  document.getElementById('due-count').textContent=statuses.filter(s=>s==='due').length;
+  document.getElementById('soon-count').textContent=statuses.filter(s=>s==='soon').length;
+  document.getElementById('ok-count').textContent=statuses.filter(s=>s==='ok').length;
+  document.getElementById('snooze-count').textContent=statuses.filter(s=>s==='snoozed').length;
+
+  let filtered=items.filter(item=>{
+    const sm=activeFilter==='all'||getStatus(item)===activeFilter;
+    const st=activeStore==='all'||item.store===activeStore;
+    const sq=!searchQuery||item.name.toLowerCase().includes(searchQuery.toLowerCase())||(item.category||'').toLowerCase().includes(searchQuery.toLowerCase());
+    const sf=activeFreq==='all'||item.bucket===activeFreq;
+    return sm&&st&&sq&&sf;
+  });
+
+  filtered.sort((a,b)=>{
+    const o={due:0,soon:1,ok:2,snoozed:3};
+    const sa=o[getStatus(a)]??4, sb=o[getStatus(b)]??4;
+    if(sa!==sb) return sa-sb;
+    return (daysSince(b.lastOrdered)||0)-(daysSince(a.lastOrdered)||0);
+  });
+
+  // Update datalist
+  const cats=[...new Set(items.map(resolveRaw))];
+  document.getElementById('cat-list').innerHTML=cats.map(c=>`<option value="${c}">`).join('');
+
+  if(activeView==='grid') renderGrid(filtered);
+  else renderCatView(filtered);
+  renderOrderPanel();
+}
+
+function renderGrid(filtered){
+  document.getElementById('items-grid').style.display='grid';
+  document.getElementById('category-view').style.display='none';
+  document.getElementById('section-label').style.display='flex';
+  const labels={due:'Due Now',soon:'Order Soon',ok:'Stocked Up',snoozed:'Snoozed',all:'All Items'};
+  document.getElementById('section-label').textContent=labels[activeFilter]||'All Items';
+  const grid=document.getElementById('items-grid');
+  if(!filtered.length){ grid.innerHTML='<div class="empty"><p>Nothing here</p><p>Try a different filter or add some items</p></div>'; return; }
+  grid.innerHTML='';
+  filtered.forEach((item,i)=>grid.appendChild(buildCard(item,i)));
+}
+
+function renderCatView(filtered){
+  document.getElementById('items-grid').style.display='none';
+  document.getElementById('category-view').style.display='flex';
+  document.getElementById('section-label').style.display='none';
+  const container=document.getElementById('category-view');
+  container.innerHTML='';
+  if(!filtered.length){ container.innerHTML='<div class="empty"><p>Nothing here</p><p>Try a different filter or add some items</p></div>'; return; }
+  const {valid,tiny}=getSmartCats(filtered);
+  valid.forEach(cat=>{
+    const catItems=filtered.filter(i=>displayCat(i,tiny)===cat);
+    if(!catItems.length) return;
+    const hasDue=catItems.some(i=>getStatus(i)==='due');
+    const sec=document.createElement('div');
+    const hdr=document.createElement('div'); hdr.className='cat-header';
+    hdr.innerHTML=`${hasDue?'<div class="cat-due-dot"></div>':''}<span class="cat-name">${cat}</span><span class="cat-count">${catItems.length} item${catItems.length!==1?'s':''}</span><div class="cat-line"></div>`;
+    const g=document.createElement('div'); g.className='cat-grid';
+    catItems.forEach((item,i)=>g.appendChild(buildCard(item,i)));
+    sec.appendChild(hdr); sec.appendChild(g);
+    container.appendChild(sec);
+  });
+}
+
+function buildCard(item,index){
+  const status=getStatus(item);
+  const card=document.createElement('div');
+  card.className=`item-card status-${status}${item.checked?' checked':''}`;
+  card.style.animationDelay=`${index*0.025}s`;
+  const pillCls={due:'pill-due',soon:'pill-soon',ok:'pill-ok',snoozed:'pill-snoozed'}[status];
+  const storeLabel=storeName(item.store);
+  const badgeStyle=storeTagStyle(item.store);
+
+  // Card actions vary by status
+  let actionsHtml='';
+  if(status==='ok'){
+    actionsHtml=`
+      <div class="card-actions">
+        <button class="card-btn card-btn-undo" onclick="undoOrdered(event,${item.id})">↩ Not yet</button>
+        <button class="card-btn card-btn-snooze" onclick="openSnooze(event,${item.id})">Snooze ▾</button>
+      </div>`;
+  } else if(status==='snoozed'){
+    actionsHtml=`
+      <div class="card-actions">
+        <button class="card-btn card-btn-snooze" onclick="openSnooze(event,${item.id})">Snooze ▾</button>
+        <button class="card-btn card-btn-unsnooze" onclick="unsnooze(event,${item.id})">Wake Up</button>
+      </div>`;
+  } else {
+    actionsHtml=`
+      <div class="card-actions">
+        <button class="card-btn card-btn-ordered" onclick="addToOrder(event,${item.id})">+ Add to Order</button>
+        <button class="card-btn card-btn-snooze" onclick="openSnooze(event,${item.id})">Snooze ▾</button>
+      </div>`;
+  }
+
+  card.innerHTML=`
+    <div class="card-top">
+      <div class="card-left">
+        <div class="card-name-wrap">
+          <div class="card-name">${item.name}</div>
+          <div class="card-sub">${item.category||''}${item.qty?' · '+item.qty:''}</div>
+          ${item.sku?`<div class="card-sku">${item.sku}</div>`:''}
+        </div>
+      </div>
+      <span class="store-badge" style="${badgeStyle}">${storeLabel}</span>
+    </div>
+    <div class="card-meta">
+      <span class="status-pill ${pillCls}">${getStatusLabel(item)}</span>
+      <span class="last-ordered">${getDaysLabel(item)}</span>
+    </div>
+    <div class="freq-label">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      ${item.bucket}${item.minDays&&item.maxDays?' · every '+item.minDays+'–'+item.maxDays+'d':''}
+    </div>
+    ${actionsHtml}`;
+
+  card.addEventListener('dblclick',()=>openEditModal(item.id));
+  return card;
+}
+
+// ── ACTIONS ──
+function addToOrder(e,id){
+  e.stopPropagation();
+  const item=items.find(i=>i.id===id); if(!item) return;
+  // Add to order list
+  if(!orderItems.find(o=>o.id===id)) orderItems.push(item);
+  item.checked=true;
+  // Move to Stocked immediately
+  item.lastOrdered=today();
+  item.snoozedUntil=null;
+  updateOrderCount(); render();
+  // Open order panel if not visible
+  if(!orderPanelVisible){ orderPanelVisible=true; document.getElementById('order-panel').classList.add('visible'); }
+}
+
+function undoOrdered(e,id){
+  e.stopPropagation();
+  const item=items.find(i=>i.id===id); if(!item) return;
+  item.lastOrdered=null;
+  item.checked=false;
+  orderItems=orderItems.filter(o=>o.id!==id);
+  updateOrderCount(); render();
+}
+
+// ── FIXED-POSITION SNOOZE POPUP ──
+let snoozePopupEl=null;
+let openSnoozeId=null;
+
+function closeSnoozePopup(){
+  if(snoozePopupEl){ snoozePopupEl.remove(); snoozePopupEl=null; }
+  openSnoozeId=null;
+}
+
+function openSnooze(e,id){
+  e.stopPropagation();
+  if(openSnoozeId===id){ closeSnoozePopup(); return; }
+  closeSnoozePopup();
+  openSnoozeId=id;
+
+  const btn=e.currentTarget;
+  const rect=btn.getBoundingClientRect();
+
+  const popup=document.createElement('div');
+  popup.className='snooze-picker-popup';
+  popup.innerHTML=`
+    <div class="snooze-picker-title">Snooze for…</div>
+    <button class="snooze-option" onclick="snoozeItem(event,${id},2)">2 days</button>
+    <button class="snooze-option" onclick="snoozeItem(event,${id},3)">3 days</button>
+    <button class="snooze-option" onclick="snoozeItem(event,${id},5)">5 days</button>
+    <div class="snooze-divider"></div>
+    <button class="snooze-option" onclick="snoozeItem(event,${id},7)">1 week</button>
+    <button class="snooze-option" onclick="snoozeItem(event,${id},14)">2 weeks</button>`;
+
+  document.body.appendChild(popup);
+  snoozePopupEl=popup;
+
+  // Position above the button
+  const popH=popup.offsetHeight||160;
+  let top=rect.top-popH-6;
+  let left=rect.right-popup.offsetWidth;
+  if(top<8) top=rect.bottom+6;
+  if(left<8) left=8;
+  popup.style.top=top+'px';
+  popup.style.left=left+'px';
+}
+
+function openSnooze(e,id){
+  e.stopPropagation();
+  if(openSnoozeId!==null&&openSnoozeId!==id){
+    const prev=document.getElementById(`snooze-${openSnoozeId}`);
+    if(prev) prev.classList.remove('open');
+  }
+  const picker=document.getElementById(`snooze-${id}`); if(!picker) return;
+  const wasOpen=picker.classList.contains('open');
+  picker.classList.toggle('open',!wasOpen);
+  openSnoozeId=wasOpen?null:id;
+}
+
+function snoozeItem(e,id,days){
+  e.stopPropagation();
+  const item=items.find(i=>i.id===id); if(!item) return;
+  item.snoozedUntil=addDays(days); item.checked=false;
+  orderItems=orderItems.filter(o=>o.id!==id);
+  closeSnoozePopup(); updateOrderCount(); render();
+}
+
+function unsnooze(e,id){
+  e.stopPropagation();
+  const item=items.find(i=>i.id===id); if(!item) return;
+  item.snoozedUntil=null; render();
+}
+
+document.addEventListener('click',()=>{ closeSnoozePopup(); });
+
+function updateOrderCount(){ document.getElementById('order-count').textContent=orderItems.length; }
+
+function renderOrderPanel(){
+  const list=document.getElementById('order-items-list');
+  document.getElementById('order-panel-count').textContent=`${orderItems.length} item${orderItems.length!==1?'s':''}`;
+  if(!orderItems.length){ list.innerHTML='<span style="color:rgba(255,255,255,0.3);font-size:0.8rem">No items checked yet — check items in the list below</span>'; return; }
+  list.innerHTML=orderItems.map(item=>{
+    const c=storeColorMap[item.store]||STORE_PALETTE[0];
+    const tagStyle=`background:rgba(${hexToRgb(c.color)},0.25);color:${c.bg};`;
+    return `<div class="order-tag">
+      <span class="order-tag-store" style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8)">${storeName(item.store)}</span>
+      ${item.name}${item.qty?' · '+item.qty:''}
+      <button class="order-tag-remove" onclick="removeFromOrder(${item.id})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function removeFromOrder(id){
+  orderItems=orderItems.filter(o=>o.id!==id);
+  const item=items.find(i=>i.id===id); if(item) item.checked=false;
+  updateOrderCount(); render();
+}
+
+function clearOrder(){
+  orderItems.forEach(o=>{ const i=items.find(x=>x.id===o.id); if(i) i.checked=false; });
+  orderItems=[]; updateOrderCount(); render();
+}
+
+function hexToRgb(hex){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `${r},${g},${b}`; }
+
+// ── SETTINGS ──
+let appSettings = {
+  subDefault: 'organic',
+  organic: 'yes',
+  qty: 'up',
+  subNotes: '',
+};
+
+const SUB_DEFAULT_LABELS = {
+  no: 'Do not substitute any items under any circumstances.',
+  organic: 'Only substitute if an organic equivalent is available.',
+  similar: 'A similar product is acceptable as a substitute.',
+  any: 'Any reasonable substitution is acceptable.',
+};
+const QTY_LABELS = {
+  no: 'Do not change quantities or pack sizes.',
+  up: 'Upsizing is acceptable if the exact size is unavailable.',
+  any: 'Any pack size is acceptable.',
+};
+
+function buildCartPrompt(){
+  const sub = SUB_DEFAULT_LABELS[appSettings.subDefault] || '';
+  const org = appSettings.organic === 'yes' ? 'Always maintain organic status — never substitute a non-organic item for an organic one.' : '';
+  const qty = QTY_LABELS[appSettings.qty] || '';
+  const extra = appSettings.subNotes ? `Additional rules: ${appSettings.subNotes}` : '';
+
+  const subBlock = [sub, org, qty, extra].filter(Boolean).join(' ');
+  const storeList = [...new Set(items.map(i=>i.store))].map(s=>storeName(s)).join(', ');
+
+  return `You are my grocery shopping assistant. Please fill my online grocery carts based on the order list below.
+
+STORES: ${storeList}
+
+INSTRUCTIONS:
+- Search for each item by its exact SKU/product name where provided
+- Add the specified quantity to the correct store's cart
+- Work through each store's items completely before moving to the next store
+- Do not click any final checkout or payment button — stop after all items are added to cart
+- Confirm the full cart contents with me before I check out
+
+SUBSTITUTION RULES:
+${subBlock}
+
+RESULTS REPORT — IMPORTANT:
+When you have finished filling all carts, output a results block in this exact format so I can sync my app. Use the item name exactly as it appears in the order list:
+
+\`\`\`json
+{
+  "results": [
+    {"name": "Item Name Here", "status": "added", "note": ""},
+    {"name": "Item Name Here", "status": "substituted", "note": "Substituted with: [actual product added]"},
+    {"name": "Item Name Here", "status": "not_found", "note": "Could not locate in store"},
+    {"name": "Item Name Here", "status": "out_of_stock", "note": "Item exists but unavailable"}
+  ]
+}
+\`\`\`
+
+Status must be one of: "added", "substituted", "not_found", "out_of_stock"
+
+ORDER LIST:`;}
+
+function updatePromptPreview(){
+  const el = document.getElementById('prompt-preview');
+  if(el) el.textContent = buildCartPrompt();
+}
+
+function openSettingsModal(){
+  document.getElementById('s-sub-default').value = appSettings.subDefault;
+  document.getElementById('s-organic').value = appSettings.organic;
+  document.getElementById('s-qty').value = appSettings.qty;
+  document.getElementById('s-sub-notes').value = appSettings.subNotes;
+  updatePromptPreview();
+  // Live preview on change
+  ['s-sub-default','s-organic','s-qty','s-sub-notes'].forEach(id=>{
+    document.getElementById(id).oninput = updatePromptPreview;
+    document.getElementById(id).onchange = updatePromptPreview;
+  });
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+function closeSettingsModal(){
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+function saveSettings(){
+  appSettings.subDefault = document.getElementById('s-sub-default').value;
+  appSettings.organic    = document.getElementById('s-organic').value;
+  appSettings.qty        = document.getElementById('s-qty').value;
+  appSettings.subNotes   = document.getElementById('s-sub-notes').value.trim();
+  closeSettingsModal();
+}
+
+document.getElementById('settings-modal').addEventListener('click', function(e){ if(e.target===this) closeSettingsModal(); });
+
+function exportOrder(){
+  if(!orderItems.length){ alert('No items in your order yet.'); return; }
+
+  // Build order list grouped by store
+  const stores=[...new Set(orderItems.map(i=>i.store))].sort();
+  let orderBlock = '';
+  stores.forEach(s=>{
+    const storeItems=orderItems.filter(i=>i.store===s);
+    if(storeItems.length){
+      orderBlock += `\n${storeName(s).toUpperCase()}:\n`;
+      orderBlock += storeItems.map(i=>{
+        let line = `• ${i.sku||i.name}`;
+        if(i.sku && i.name!==i.sku) line += ` (${i.name})`;
+        if(i.qty) line += ` — ${i.qty}`;
+        return line;
+      }).join('\n');
+      orderBlock += '\n';
+    }
+  });
+
+  const fullText = buildCartPrompt() + '\n' + orderBlock.trim();
+  const btn = document.getElementById('copy-order-btn');
+  const box = document.getElementById('order-copy-box');
+  const hint = document.getElementById('order-copy-hint');
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(fullText).then(()=>{
+      btn.textContent='✓ Copied!';
+      setTimeout(()=>btn.textContent='Copy Order + Prompt', 2000);
+      box.style.display='none'; hint.style.display='none';
+    }).catch(()=>{ showFallback(fullText, box, hint); });
+  } else {
+    showFallback(fullText, box, hint);
+  }
+}
+
+function showFallback(text, box, hint){
+  box.value=text;
+  box.style.display='block';
+  hint.style.display='block';
+  box.focus();
+  box.select();
+  // Also try execCommand as secondary fallback
+  try{ document.execCommand('copy'); 
+    document.getElementById('copy-order-btn').textContent='✓ Copied!';
+    setTimeout(()=>document.getElementById('copy-order-btn').textContent='Copy Order List',2000);
+  } catch(e){}
+}
+
+function toggleOrderPanel(){
+  orderPanelVisible=!orderPanelVisible;
+  document.getElementById('order-panel').classList.toggle('visible',orderPanelVisible);
+}
+
+function setFilter(f){
+  activeFilter=f;
+  document.querySelectorAll('.summary-chip').forEach(c=>c.classList.remove('active'));
+  const m={due:0,soon:1,ok:2,snoozed:3,all:4};
+  document.querySelectorAll('.summary-chip')[m[f]]?.classList.add('active');
+  render();
+}
+
+function setFreqFilter(f,btn){
+  activeFreq=f;
+  document.querySelectorAll('.freq-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function setStore(s,btn){
+  activeStore=s;
+  document.querySelectorAll('#store-tabs .tab-btn').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active'); render();
+}
+
+function setView(v,btn){
+  activeView=v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); render();
+}
+
+function setSearch(v){ searchQuery=v; render(); }
+
+// ── MODAL ──
+const BUCKET_DEFS={'2-3x/week':[2,4],'Weekly':[7,10],'Bi-weekly':[12,18],'Monthly':[25,35]};
+
+function openAddModal(){
+  editingId=null;
+  document.getElementById('modal-title').textContent='Add Item';
+  ['f-name','f-category','f-qty','f-sku'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('btn-delete-item').style.display='none';
+  document.getElementById('f-bucket').value='Weekly';
+  document.getElementById('f-min').value='7'; document.getElementById('f-max').value='10';
+  document.getElementById('f-last').value=today();
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+
+function openEditModal(id){
+  const item=items.find(i=>i.id===id); if(!item) return;
+  editingId=id;
+  document.getElementById('modal-title').textContent='Edit Item';
+  document.getElementById('f-name').value=item.name;
+  document.getElementById('f-category').value=item.category||'';
+  rebuildStoreSelect(item.store);
+  document.getElementById('btn-delete-item').style.display='inline-flex';
+  document.getElementById('f-min').value=item.minDays||'';
+  document.getElementById('f-max').value=item.maxDays||'';
+  document.getElementById('f-last').value=item.lastOrdered||'';
+  document.getElementById('f-qty').value=item.qty||'';
+  document.getElementById('f-sku').value=item.sku||'';
+  document.getElementById('modal').classList.add('open');
+}
+
+function deleteItem(){
+  if(!editingId) return;
+  if(!confirm('Delete this item? This cannot be undone.')) return;
+  items=items.filter(i=>i.id!==editingId);
+  orderItems=orderItems.filter(i=>i.id!==editingId);
+  updateOrderCount();
+  closeModal();
+  render();
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+document.getElementById('f-bucket').addEventListener('change',function(){
+  const r=BUCKET_DEFS[this.value];
+  document.getElementById('f-min').value=r?r[0]:'';
+  document.getElementById('f-max').value=r?r[1]:'';
+});
+
+function saveItem(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){ document.getElementById('f-name').focus(); return; }
+  const data={
+    name, category:document.getElementById('f-category').value.trim(),
+    store:document.getElementById('f-store').value, bucket:document.getElementById('f-bucket').value,
+    minDays:parseInt(document.getElementById('f-min').value)||null,
+    maxDays:parseInt(document.getElementById('f-max').value)||null,
+    lastOrdered:document.getElementById('f-last').value||null,
+    qty:document.getElementById('f-qty').value.trim(),
+    sku:document.getElementById('f-sku').value.trim(),
+    checked:false, snoozedUntil:null,
+  };
+  if(editingId){ const idx=items.findIndex(i=>i.id===editingId); items[idx]={...items[idx],...data}; }
+  else items.push({id:nextId++,...data});
+  closeModal(); render();
+}
+
+document.getElementById('modal').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+document.getElementById('recipe-modal').addEventListener('click',function(e){ if(e.target===this) closeRecipeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); closeRecipeModal(); } });
+
+// ── RECIPE FEATURE ──
+let recipeImageBase64=null, recipeImageType=null;
+let recipeParsedIngredients=[], recipeStockAnswers={}, recipeAddCandidates=[];
+
+function openRecipeModal(){
+  recipeImageBase64=null; recipeImageType=null;
+  recipeParsedIngredients=[]; recipeStockAnswers={}; recipeAddCandidates=[];
+  document.getElementById('recipe-url').value='';
+  document.getElementById('recipe-text').value='';
+  document.getElementById('drop-label').textContent='Drop a screenshot or click to upload';
+  document.getElementById('drop-sub').textContent='PNG, JPG, WEBP supported';
+  document.getElementById('recipe-drop-zone').classList.remove('has-content');
+  document.getElementById('recipe-step1-error').style.display='none';
+  document.getElementById('recipe-step2-error').style.display='none';
+  goRecipeStep(1);
+  document.getElementById('recipe-modal').classList.add('open');
+}
+
+function closeRecipeModal(){ document.getElementById('recipe-modal').classList.remove('open'); }
+
+function goRecipeStep(n){
+  [1,2,3,4].forEach(i=>{
+    document.getElementById(`recipe-step-${i}`).style.display=i===n?'block':'none';
+    const c=document.getElementById(`step-c-${i}`);
+    c.className='step-circle'+(i===n?' active':i<n?' done':'');
+    if(i<4) document.getElementById(`step-l-${i}`).className='step-line'+(i<n?' done':'');
+  });
+}
+
+// File upload
+document.getElementById('recipe-file-input').addEventListener('change',function(){
+  const file=this.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    recipeImageBase64=e.target.result.split(',')[1];
+    recipeImageType=file.type;
+    document.getElementById('drop-label').textContent=`✓ ${file.name}`;
+    document.getElementById('drop-sub').textContent='Image ready — click Parse to continue';
+    document.getElementById('recipe-drop-zone').classList.add('has-content');
+  };
+  reader.readAsDataURL(file);
+});
+
+const dropZone=document.getElementById('recipe-drop-zone');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.style.borderColor='var(--sage)';});
+dropZone.addEventListener('dragleave',()=>{dropZone.style.borderColor='';});
+dropZone.addEventListener('drop',e=>{
+  e.preventDefault(); dropZone.style.borderColor='';
+  const file=e.dataTransfer.files[0]; if(!file||!file.type.startsWith('image/')) return;
+  const dt=new DataTransfer(); dt.items.add(file);
+  document.getElementById('recipe-file-input').files=dt.files;
+  document.getElementById('recipe-file-input').dispatchEvent(new Event('change'));
+});
+
+async function parseRecipe(){
+  const url=document.getElementById('recipe-url').value.trim();
+  const text=document.getElementById('recipe-text').value.trim();
+  const errEl=document.getElementById('recipe-step1-error');
+  errEl.style.display='none';
+  if(!recipeImageBase64&&!text&&!url){ errEl.textContent='Please upload an image, paste a URL, or type the recipe ingredients.'; errEl.style.display='block'; return; }
+
+  goRecipeStep(2);
+  document.getElementById('recipe-thinking').style.display='flex';
+  document.getElementById('recipe-parsed-ingredients').innerHTML='';
+  document.getElementById('btn-to-stock').style.display='none';
+  document.getElementById('recipe-step2-error').style.display='none';
+
+  const storeKeys=[...new Set(items.map(i=>i.store))];
+  const storeDesc=storeKeys.map(s=>`"${s}"=${storeName(s)}`).join(', ');
+  const existingNames=items.map(i=>i.name).join(', ');
+
+  const system=`You are a grocery assistant. Extract recipe ingredients and return ONLY a valid JSON array — no markdown, no explanation.
+Each element must be: {"name":"clean ingredient name","qty":"amount+unit","store":"store_key"}
+Store keys available: ${storeDesc}
+Household items already stocked (for store assignment reference): ${existingNames}
+Assign each ingredient to the most appropriate store. Default to "${storeKeys[0]}" if unsure.
+Return ONLY the raw JSON array.`;
+
+  try {
+    document.getElementById('thinking-msg').textContent='Claude is parsing the recipe…';
+    let userContent;
+    if(recipeImageBase64){
+      userContent=[{type:'image',source:{type:'base64',media_type:recipeImageType,data:recipeImageBase64}},{type:'text',text:'Extract all ingredients. Return only the JSON array.'}];
+    } else if(url){
+      userContent=`Extract all ingredients from this recipe URL: ${url}\nReturn only the JSON array.`;
+    } else {
+      userContent=`Extract all ingredients from this recipe text:\n\n${text}\n\nReturn only the JSON array.`;
+    }
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,system,messages:[{role:'user',content:userContent}]})
+    });
+    const data=await resp.json();
+    const raw=data.content.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
+    recipeParsedIngredients=JSON.parse(raw);
+
+    document.getElementById('recipe-thinking').style.display='none';
+    const box=document.getElementById('recipe-parsed-ingredients');
+    box.innerHTML=`<div class="recipe-parsed">
+      <div class="recipe-parsed-title">✓ Found ${recipeParsedIngredients.length} ingredients</div>
+      ${recipeParsedIngredients.map(ing=>`
+        <div class="recipe-ingredient-row">
+          <span class="ri-name">${ing.name}</span>
+          <span class="ri-qty">${ing.qty||''}</span>
+          <span class="store-badge" style="${storeTagStyle(ing.store||storeKeys[0])};font-size:0.65rem;padding:2px 6px">${storeName(ing.store||storeKeys[0])}</span>
+        </div>`).join('')}
+    </div>`;
+    document.getElementById('btn-to-stock').style.display='inline-flex';
+  } catch(err){
+    document.getElementById('recipe-thinking').style.display='none';
+    document.getElementById('recipe-step2-error').textContent='Could not parse the recipe. Try pasting the ingredient list as text instead.';
+    document.getElementById('recipe-step2-error').style.display='block';
+  }
+}
+
+document.getElementById('btn-to-stock').addEventListener('click',()=>{ goRecipeStep(3); buildStockCheckList(); });
+
+function fuzzyMatch(ingName){
+  const n=ingName.toLowerCase();
+  return items.find(item=>{
+    const iname=item.name.toLowerCase();
+    return iname.includes(n.split(' ')[0])||n.includes(iname.split(' ')[0]);
+  });
+}
+
+function buildStockCheckList(){
+  const list=document.getElementById('stock-check-list');
+  list.innerHTML='';
+  const autoSkipped=[], matchedItems=[], needsCheck=[];
+
+  recipeParsedIngredients.forEach(ing=>{
+    const match=fuzzyMatch(ing.name);
+    const inOrder=match&&orderItems.find(o=>o.id===match.id);
+    const stocked=match&&getStatus(match)==='ok';
+
+    if(inOrder){
+      // Already in order — auto-skip, no confirmation needed
+      autoSkipped.push({ing, reason:'in-order', match});
+    } else if(stocked){
+      // Stocked and Claude found a match — ask user to confirm the match
+      matchedItems.push({ing, match});
+      recipeStockAnswers[ing.name]='confirm-yes'; // default: trust the match
+    } else if(match){
+      // Claude found a fuzzy match but item isn't stocked — ask user to confirm match
+      matchedItems.push({ing, match});
+      recipeStockAnswers[ing.name]='confirm-yes'; // default: trust the match
+    } else {
+      // No match found — ask if they have it at home
+      needsCheck.push(ing);
+      recipeStockAnswers[ing.name]='no';
+    }
+  });
+
+  // Section 1: Auto-skipped (already in order)
+  if(autoSkipped.length){
+    list.innerHTML+=`<div class="skipped-label">Already in your order — skipped:</div>`;
+    autoSkipped.forEach(({ing})=>{
+      list.innerHTML+=`<div class="stock-item-row" style="opacity:0.55">
+        <span class="stock-item-name">${ing.name}</span>
+        <span class="stock-already-ordered">In order</span>
+      </div>`;
+    });
+  }
+
+  // Section 2: Claude found matches — ask user to confirm
+  if(matchedItems.length){
+    list.innerHTML+=`<div class="skipped-label" style="margin-top:${autoSkipped.length?'14px':'0'}">Claude thinks these match items on your list — agree?</div>`;
+    matchedItems.forEach(({ing, match})=>{
+      const key=ing.name.replace(/[^a-z0-9]/gi,'_');
+      const isStocked=getStatus(match)==='ok';
+      list.innerHTML+=`<div class="stock-item-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <span class="stock-item-name">${ing.name} <span style="font-size:0.72rem;color:var(--ink-faint)">${ing.qty||''}</span></span>
+          <div class="stock-toggle">
+            <button class="stock-toggle-btn active-yes" id="syes-${key}" onclick="setStock('${ing.name}','confirm-yes')">✓ Yes</button>
+            <button class="stock-toggle-btn" id="sno-${key}" onclick="setStock('${ing.name}','confirm-no')">No, different</button>
+          </div>
+        </div>
+        <div style="font-size:0.72rem;color:var(--ink-faint);padding:4px 8px;background:var(--paper);border-radius:4px;width:100%">
+          Matched to: <strong>${match.name}</strong>${match.sku?' · '+match.sku:''}
+          ${isStocked?'<span class="stock-already-due" style="margin-left:8px">Stocked</span>':''}
+        </div>
+      </div>`;
+    });
+  }
+
+  // Section 3: No match — do you have it at home?
+  if(needsCheck.length){
+    list.innerHTML+=`<div class="skipped-label" style="margin-top:${(autoSkipped.length||matchedItems.length)?'14px':'0'}">Do you already have these at home?</div>`;
+    needsCheck.forEach(ing=>{
+      const key=ing.name.replace(/[^a-z0-9]/gi,'_');
+      list.innerHTML+=`<div class="stock-item-row">
+        <span class="stock-item-name">${ing.name}</span>
+        <span class="stock-item-qty">${ing.qty||''}</span>
+        <div class="stock-toggle">
+          <button class="stock-toggle-btn" id="syes-${key}" onclick="setStock('${ing.name}','yes')">✓ Have it</button>
+          <button class="stock-toggle-btn active-no" id="sno-${key}" onclick="setStock('${ing.name}','no')">Need it</button>
+        </div>
+      </div>`;
+    });
+  }
+
+  if(!matchedItems.length&&!needsCheck.length&&autoSkipped.length){
+    list.innerHTML+=`<div style="text-align:center;padding:16px;color:var(--ok);font-weight:500;font-size:0.84rem">✓ Everything is already in your order!</div>`;
+  }
+}
+
+function setStock(name,val){
+  recipeStockAnswers[name]=val;
+  const key=name.replace(/[^a-z0-9]/gi,'_');
+  const y=document.getElementById(`syes-${key}`), n=document.getElementById(`sno-${key}`);
+  if(!y||!n) return;
+  if(val==='confirm-yes'){
+    y.className='stock-toggle-btn active-yes';
+    n.className='stock-toggle-btn';
+  } else if(val==='confirm-no'){
+    y.className='stock-toggle-btn';
+    n.className='stock-toggle-btn active-no';
+  } else if(val==='yes'){
+    y.className='stock-toggle-btn active-yes';
+    n.className='stock-toggle-btn';
+  } else {
+    y.className='stock-toggle-btn';
+    n.className='stock-toggle-btn active-no';
+  }
+}
+
+function buildAddList(){
+  goRecipeStep(4);
+  const container=document.getElementById('items-to-add-list');
+  container.innerHTML=''; recipeAddCandidates=[];
+
+  recipeParsedIngredients.forEach(ing=>{
+    const match=fuzzyMatch(ing.name);
+    const inOrder=match&&orderItems.find(o=>o.id===match.id);
+    const ans=recipeStockAnswers[ing.name];
+
+    // Skip if: already in order, user said they have it, or user confirmed Claude's match
+    if(inOrder) return;
+    if(ans==='yes') return;
+    if(ans==='confirm-yes') return; // user agreed with match — item is on list already
+
+    recipeAddCandidates.push({ing, match: ans==='confirm-no'?null:match, selected:true, permanent:false});
+  });
+
+  if(!recipeAddCandidates.length){
+    container.innerHTML=`<div style="text-align:center;padding:24px;color:var(--ok);font-weight:500">✓ You already have everything for this recipe!</div>`;
+    return;
+  }
+
+  recipeAddCandidates.forEach((cand,idx)=>{
+    const {ing}=cand;
+    const store=ing.store||items[0]?.store||'';
+    container.innerHTML+=`<div class="new-item-row" id="add-row-${idx}">
+      <input type="checkbox" class="new-item-check" id="add-${idx}" checked onchange="recipeAddCandidates[${idx}].selected=this.checked">
+      <div class="new-item-info">
+        <div class="new-item-name">${ing.name}</div>
+        <div class="new-item-detail">${ing.qty?ing.qty+' · ':''}New item · <span style="color:var(--ink-faint)">not on your grocery list</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="new-item-store store-badge" style="${storeTagStyle(store)}">${storeName(store)}</span>
+        <div class="permanence-toggle">
+          <button class="permanence-btn active-once" id="ponce-${idx}" onclick="setPermanence(${idx},'once')">One-time</button>
+          <button class="permanence-btn" id="pperm-${idx}" onclick="setPermanence(${idx},'perm')">Add to list</button>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+function setPermanence(idx, val){
+  recipeAddCandidates[idx].permanent = (val==='perm');
+  document.getElementById(`ponce-${idx}`).className='permanence-btn'+(val==='once'?' active-once':'');
+  document.getElementById(`pperm-${idx}`).className='permanence-btn'+(val==='perm'?' active-perm':'');
+}
+
+function addRecipeItemsToOrder(){
+  const toAdd=recipeAddCandidates.filter(c=>c.selected);
+  if(!toAdd.length){ closeRecipeModal(); return; }
+
+  toAdd.forEach(({ing, permanent})=>{
+    const store=ing.store||items[0]?.store||'';
+    if(permanent){
+      // Add permanently to grocery list with "As needed" frequency
+      const newItem={id:nextId++, name:ing.name, category:'', store,
+        bucket:'As needed', minDays:null, maxDays:null,
+        lastOrdered:null, qty:ing.qty||'', sku:'', checked:true, snoozedUntil:null};
+      items.push(newItem);
+      orderItems.push(newItem);
+    } else {
+      // One-time: add to order only, don't persist to grocery list
+      const tempItem={id:nextId++, name:ing.name, category:'', store,
+        bucket:'As needed', minDays:null, maxDays:null,
+        lastOrdered:null, qty:ing.qty||'', sku:'', checked:true, snoozedUntil:null,
+        oneTime:true};
+      orderItems.push(tempItem); // NOT pushed to items[]
+    }
+  });
+
+  updateOrderCount(); closeRecipeModal();
+  if(!orderPanelVisible){ orderPanelVisible=true; document.getElementById('order-panel').classList.add('visible'); }
+  render();
+}
+
+// ── IMPORT RESULTS ──
+let importParsedResults = [];
+
+function openImportModal(){
+  document.getElementById('import-json-input').value='';
+  document.getElementById('import-parse-error').style.display='none';
+  showImportStep(1);
+  document.getElementById('import-modal').classList.add('open');
+}
+
+function closeImportModal(){
+  document.getElementById('import-modal').classList.remove('open');
+}
+
+function showImportStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById(`import-step-${i}`).style.display = i===n?'block':'none';
+  });
+}
+
+document.getElementById('import-modal').addEventListener('click', function(e){ if(e.target===this) closeImportModal(); });
+
+function parseImportResults(){
+  const raw = document.getElementById('import-json-input').value.trim();
+  const errEl = document.getElementById('import-parse-error');
+  errEl.style.display='none';
+
+  // Strip markdown code fences if present
+  const clean = raw.replace(/```json|```/g,'').trim();
+
+  try {
+    const parsed = JSON.parse(clean);
+    if(!parsed.results || !Array.isArray(parsed.results)) throw new Error('Missing results array');
+    importParsedResults = parsed.results;
+  } catch(e){
+    errEl.textContent = 'Could not parse JSON. Make sure you copied the full results block from Claude.';
+    errEl.style.display='block';
+    return;
+  }
+
+  // Build preview
+  const STATUS_ICONS = { added:'✓', substituted:'⇄', not_found:'✗', out_of_stock:'✗' };
+  const STATUS_LABELS = { added:'Added', substituted:'Substituted', not_found:'Not found', out_of_stock:'Out of stock' };
+
+  let added=0, subbed=0, missing=0;
+  const listEl = document.getElementById('import-results-list');
+  listEl.innerHTML='';
+
+  importParsedResults.forEach(r=>{
+    const status = r.status||'not_found';
+    if(status==='added') added++;
+    else if(status==='substituted') subbed++;
+    else missing++;
+
+    // Try to match to an item in the list
+    const match = items.find(i=>
+      i.name.toLowerCase()===r.name.toLowerCase() ||
+      (i.sku&&i.sku.toLowerCase().includes(r.name.toLowerCase().split(' ')[0]))
+    ) || orderItems.find(i=>i.name.toLowerCase()===r.name.toLowerCase());
+
+    listEl.innerHTML+=`<div class="import-result-row import-status-${status}">
+      <span class="import-result-icon">${STATUS_ICONS[status]||'?'}</span>
+      <div>
+        <div class="import-result-name">${r.name}</div>
+        <div class="import-result-note">
+          ${STATUS_LABELS[status]}${r.note?' — '+r.note:''}
+          ${match?`<span style="color:var(--ink-faint)"> · matched to: ${match.name}</span>`:'<span style="color:var(--ink-faint)"> · no match found in list</span>'}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  // Summary chips
+  document.getElementById('import-summary').innerHTML=`
+    ${added?`<span class="import-summary-chip import-chip-added">✓ ${added} added</span>`:''}
+    ${subbed?`<span class="import-summary-chip import-chip-sub">⇄ ${subbed} substituted</span>`:''}
+    ${missing?`<span class="import-summary-chip import-chip-missing">✗ ${missing} not found</span>`:''}
+  `;
+
+  showImportStep(2);
+}
+
+function applyImportResults(){
+  let moved=0, flagged=0;
+
+  importParsedResults.forEach(r=>{
+    const status=r.status||'not_found';
+
+    // Find matching item
+    const match = items.find(i=>
+      i.name.toLowerCase()===r.name.toLowerCase() ||
+      (i.sku&&i.sku.toLowerCase().includes(r.name.toLowerCase().split(' ')[0]))
+    );
+
+    if(!match) return;
+
+    if(status==='added'){
+      // Already stocked — nothing to change, lastOrdered already set
+    } else if(status==='substituted'){
+      // Keep stocked but flag it — add a note to the item
+      match.substitutionNote = r.note||'Substituted';
+      flagged++;
+    } else if(status==='not_found'||status==='out_of_stock'){
+      // Move back to Due Now — clear lastOrdered
+      match.lastOrdered=null;
+      match.checked=false;
+      // Remove from order since it wasn't purchased
+      orderItems=orderItems.filter(o=>o.id!==match.id);
+      moved++;
+    }
+  });
+
+  updateOrderCount();
+  document.getElementById('import-done-summary').textContent =
+    `${moved} item${moved!==1?'s':''} moved back to Due Now · ${flagged} substitution${flagged!==1?'s':''} flagged`;
+
+  showImportStep(3);
+  render();
+}
+let devNotes = [
+  { id:1, text:'Validate item ordering capability — test the full end-to-end flow with Claude in Chrome filling actual carts', done:false },
+  { id:2, text:'Explore price comparison across Instacart stores — delink item from a fixed store, make store a default that Claude can override if a better price or match is found elsewhere', done:false },
+  { id:3, text:'Replacement preferences & communication — define rules for acceptable substitutions per item, and how Claude should notify/confirm before swapping', done:false },
+  { id:4, text:'Recipe → store assignment: Claude should search Instacart inventory to find best-priced match, optimize for fewer stores, and check order history for previously purchased matching items', done:false },
+  { id:5, text:'Explore ordering execution — map out full checkout flow and identify every step that can be automated vs. requires human confirmation', done:false },
+  { id:6, text:'Fix snooze dropdown — needs fix (likely event/positioning issue in this environment)', done:false },
+  { id:7, text:'Explore live inventory search via Kroger API (free dev access at developer.kroger.com) — Kroger owns Ralphs which is on Instacart. Would allow searching real products by name and auto-populating SKU, brand, size, and price. Needs a small Cloudflare Worker proxy (free) to connect the static app to the API. Goal: type "Banana" and get real store products back to one-click add to list.', done:false },
+];
+let devNextId = 8;
+
+function renderDevNotes(){
+  const list = document.getElementById('dev-notes-list');
+  const badge = document.getElementById('dev-badge');
+  const open = devNotes.filter(n=>!n.done).length;
+  badge.textContent = open;
+  if(!devNotes.length){
+    list.innerHTML = '<div style="font-size:0.75rem;color:rgba(255,255,255,0.3);padding:6px 0">No notes yet.</div>';
+    return;
+  }
+  list.innerHTML = devNotes.map(n=>`
+    <div class="dev-item">
+      <input type="checkbox" class="dev-item-check" ${n.done?'checked':''} onchange="toggleDevNote(${n.id})">
+      <span class="dev-item-text ${n.done?'done':''}">${n.text}</span>
+      <button class="dev-item-del" onclick="deleteDevNote(${n.id})" title="Delete">×</button>
+    </div>`).join('');
+}
+
+function addDevNote(){
+  const input = document.getElementById('dev-new-note');
+  const text = input.value.trim();
+  if(!text) return;
+  devNotes.push({ id:devNextId++, text, done:false });
+  input.value = '';
+  renderDevNotes();
+}
+
+function toggleDevNote(id){
+  const note = devNotes.find(n=>n.id===id);
+  if(note) note.done = !note.done;
+  renderDevNotes();
+}
+
+function deleteDevNote(id){
+  devNotes = devNotes.filter(n=>n.id!==id);
+  renderDevNotes();
+}
+
+function toggleDevPanel(){
+  const panel = document.getElementById('dev-panel');
+  const icon = document.getElementById('dev-toggle-icon');
+  const collapsed = panel.classList.toggle('collapsed');
+  icon.textContent = collapsed ? '▲ show' : '▼ hide';
+}
+
+render();
+renderDevNotes();
+
+</script>
+</body>
+</html>
